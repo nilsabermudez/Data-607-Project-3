@@ -1,0 +1,119 @@
+---
+title: "Project3"
+author: "Subhalaxmi Rout"
+date: "2/28/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Load packages
+#install.packages("rvest")
+#install.packages("xml2")
+library(tidyverse)
+library(rvest)
+library(xml2)
+```
+
+
+```{r}
+page_result_start <- 1 # starting page 
+page_result_end <- 30 # last page results
+page_results <- seq(from = page_result_start, to = page_result_end, by = 1)
+page_results
+```
+```{r}
+full_df <- data.frame()
+
+for(i in seq_along(page_results)) {
+  
+  first_page_url <- "https://www.indeed.com/jobs?q=data+scientist&l=Washington%2C+DC"
+  url <- paste0(first_page_url, "&start=", page_results[i])
+  page <- xml2::read_html(url)
+  # Sys.sleep pauses R for two seconds before it resumes
+  # Putting it there avoids error messages such as "Error in open.connection(con, "rb") : Timeout was reached"
+  Sys.sleep(2)
+
+
+
+print(page)
+}
+```
+
+```{r}
+  #get the job title
+  job_title <- page %>% 
+    rvest::html_nodes("div") %>%
+    rvest::html_nodes(xpath = '//a[@data-tn-element = "jobTitle"]') %>%
+    rvest::html_attr("title")
+job_title 
+  #get the company name
+  company_name <- page %>% 
+    rvest::html_nodes("span")  %>% 
+    rvest::html_nodes(xpath = '//*[@class="company"]')  %>% 
+    rvest::html_text() %>%
+    stringi::stri_trim_both() -> company.name 
+company_name  
+  
+  #get job location
+  job_location <- page %>% 
+    rvest::html_nodes("span") %>% 
+    rvest::html_nodes(xpath = '//*[@class="location accessible-contrast-color-location"]')%>% 
+    rvest::html_text() %>%
+    stringi::stri_trim_both()
+  
+length(job_location)
+
+
+  # get links
+  links <- page %>% 
+    rvest::html_nodes("div") %>%
+    rvest::html_nodes(xpath = '//*[@class="jobtitle turnstileLink "]') %>%
+    rvest::html_attr("href")
+
+length(links) 
+
+ 
+
+  job_description <- c()
+  for(i in seq_along(links)) 
+    {
+    
+    url <- paste0("https://indeed.com/", links[i])
+    page <- xml2::read_html(url)
+    
+    job_description[[i]] <- page %>%
+      rvest::html_nodes("span")  %>% 
+      rvest::html_nodes(xpath = '//*[@class="jobsearch-jobDescriptionText"]') %>% 
+      rvest::html_text() %>%
+      stringi::stri_trim_both()
+  }
+  
+  length(job_description)
+  df <- data.frame(job_title, company_name, job_location, job_description)
+  full_df <- rbind(full_df, df)
+  full_df
+  
+
+ 
+df_washington <- full_df %>%
+  dplyr::distinct() %>%
+  dplyr::mutate(city = "Washington, DC")
+ 
+ 
+#df_washington <- rbind(df_washington,)
+write.csv(df_washington, "df_washington.csv")
+ 
+# some cleaning
+df_washington$job_description <- gsub("[\r\n]", "", df_washington$job_description)
+ 
+df_washington <- read.csv("df_washington.csv")
+
+head(df_washington,2)
+```
+
