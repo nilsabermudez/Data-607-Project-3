@@ -1,0 +1,186 @@
+---
+title: "Project 3 ver2"
+author: "Subhalaxmi Rout"
+date: "3/11/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages("rvest")
+#install.packages("xml2")
+#install.packages("tidyverse")
+#install.packages("stringr")
+#install.packages("dplyr")
+#install.packages("DT")
+```
+
+```{r}
+library(tidyverse)
+library(rvest)
+library(xml2)
+library(stringr)
+library(dplyr)
+library(DT)
+```
+
+```{r}
+  scraper_func <- function(url) {
+  job_title <- page %>% 
+  rvest::html_nodes(".jobtitle") %>%
+  rvest::html_attr("title")
+  location <- page %>%
+  rvest::html_nodes(".location") %>%
+  rvest::html_text()
+  company_name <- page %>% rvest::html_nodes(".company") %>%
+  rvest::html_text() %>%
+  stringi::stri_trim_both()  
+  links <- page %>% 
+  rvest::html_nodes('[data-tn-element="jobTitle"]') %>%
+  rvest::html_attr("href")
+  job_desc <- c()
+  for (link in links) {
+    url <- paste0("https://www.indeed.com/", link)
+    page <- xml2::read_html(url) %>% html_node("#jobDescriptionText") %>%
+      html_text() %>%
+        stringi::stri_trim_both()
+    job_desc <- c(job_desc, page)
+  }
+  df <- data.frame(job_title, location, company_name, job_desc)
+  return(df)
+  }
+pages <- seq(from = 0, to = 990, by = 10 )
+ds_df <- data.frame()
+url <- "https://www.indeed.com/jobs?q=data+scientist&l=USA"
+page <- xml2::read_html(url)
+for (i in pages) {
+  if (i == 0) {
+    page <- xml2::read_html(url)
+    Sys.sleep(3)
+    df <- scraper_func(page)
+    ds_df <- rbind(ds_df, df)
+  } else {
+    url_next <- paste0(url, "&start=", i)
+    page <- xml2::read_html(url)
+    Sys.sleep(3)
+    df <- scraper_func(page)
+    ds_df <- rbind(ds_df, df)
+  }
+  }
+ds_df
+```
+
+
+```{r}
+#data cleaning
+data <- readr::read_csv("https://raw.githubusercontent.com/christianthieme/MSDS-DATA607/master/indeed_scrape.csv")
+
+#remove duplicate
+data <- unique(data)
+
+#remove row where job description is blank
+data <- data %>% filter(job_desc != "")
+
+# remove "\n" from job description
+data$job_desc <-  str_replace_all(data$job_desc, "[\r\n]" , "")
+
+#creat one more column with state
+location_ex <- "[A-Z]{2}"
+data <- data %>% mutate(state = str_extract(location, location_ex))
+
+#remove postal code from city
+postal_ex <- "\\w+.\\w+"
+data$location <-  str_extract(data$location, postal_ex)
+
+
+#order the data
+data <- data %>% select(job_title,location,state,company_name,job_desc)
+#view data
+
+data
+```
+
+```{r}
+
+tags_softskills <- c('highly motivated','curious','critical thinking', 'problem solving', 'business sense', 'creativity','collaboration',"enthusiastic over-achievers","interpersonal skills","analytical thinker","passionate","humble","resourceful", "work independently","driving on-time","ability to think outside-the-box","communication","communicate","solve the business problem","decision-making"
+)
+
+#Extract keywords from "description" column and create new column with keywords
+tag_ex <- paste0('(', paste(tags_softskills, collapse = '|'), ')')
+data <- data %>%
+mutate(soft_skills = sapply(str_extract_all(job_desc, tag_ex), function(x) paste(x, collapse=',')))
+
+unique(tags_softskills)
+```
+
+
+
+
+
+
+```{r}
+tags_technicalskills <- c("analytic solutions","machine learning","predictive modeling","database systems","clinical decision engines", "algorithms", "NLP/ML", "SQL",  "MongoDB","DynamoDB", "R,","Python","dplyr","GGPlot", "Pandas","OLS","MLE","Machine Learning",  "Decision Tree/Random Forest","AI" , "Visualization","A/B tests set-up","Reporting","analysis",  "data visualizations","numpy", "scipy","scikit-learn", "tensorflow","pytorch" , "keras","genism", "vowpal wabbit","Heap.io","Google Analytics","Big Data","Business Analytics","Oracle","Relational Database Management System (RDMS)","Statistical Programming Language","Regression","Decision Trees","K-Means","Tableau","looker","R Programming" ,"Microsoft Office" , "SPSS","No-SQL", "Cassandra","Hadoop", "Pig","Hive", "HPCC Systems","Javascript" , "Java","PowerBI","Linux","TensorFlow", "Keras","Shiny","Artificial Intelligence","NLP", "Tesseract","Jenkins CI/CD", "Azure","logistic regression","k-means clustering","decision forests", "JavaScript","Cloud data", "MATLAB","Excel", "Jupyter","Gurobi","Arena","agile", "Git","Github" ,"SNR signals", "Qlikview","Business Intelligence", "supply chain","D3", "big data")
+
+#Extract keywords from "description" column and create new column with keywords
+tag_ex <- paste0('(', paste(tags_technicalskills, collapse = '|'), ')')
+
+data <- data %>%
+mutate(technical_skills = sapply(str_extract_all(job_desc, tag_ex), function(x) paste(x, collapse=',')))
+#data
+unique(tags_technicalskills)
+```
+
+```{r}
+
+#tags_salary <- "(\\$?[0-9]{2,3},?[0-9]{3}\\.?([0-9]{2})?[ \\/to-]{3,4}\\$?[0-9]{2,3},?[0-9]{3}\\.?([0-9]{2})?)|([0-9]{2,3},?[0-9]{3})[:space:].\\/"
+
+tags_salary_lower <- "\\$[0-9]{2,},?[0-9]{3}\\.?([0-9]{2})|(\\$[0-9]{2,3},?[0-9]{3})"
+tags_salary_upper <- "([\\/to-]\\s\\$[0-9]{2,},?[0-9]{3}\\.?([0-9]{2}))|([\\/to-]\\s\\$[0-9]{2,},?[0-9]{3})"
+
+#data <- data %>% mutate(salary = str_extract(job_desc, tags_salary))
+data <- data %>% mutate(salary_lower_range = str_extract(job_desc, tags_salary_lower))
+data <- data %>% mutate(salary_higher_range = str_extract(job_desc, tags_salary_upper))
+data$salary_lower_range <- gsub("\\$|,", "", data$salary_lower_range)
+data$salary_higher_range <- gsub("\\$|,|o|-|/", "", data$salary_higher_range)
+
+# change character to integer
+makenumcols<-function(data)
+  {
+  data<-as.data.frame(data) # stroed in a data frame
+  
+  data[] <- lapply(data, as.character) # check for character type
+  
+  cond <- apply(data, 2, function(x) { # condition for numeric, if numeric value True or else False
+    x <- x[!is.na(x)]
+    all(suppressWarnings(!is.na(as.numeric(x))))
+  })
+  # the columns have numeric data
+  numeric_cols <- names(data)[cond]
+  data[,numeric_cols] <- sapply(data[,numeric_cols], as.numeric)
+  #return the data desired format
+  return(data)
+}
+data <- makenumcols(data)
+data <-  data %>% filter(!is.na(salary_lower_range))
+data
+```
+
+
+```{r}
+#Create .csv file
+write.csv(data, file = "data.csv", row.names = FALSE)
+data <- read.csv("data.csv")
+datatable(data)
+```
+
+```{r}
+
+
+```
+
+
