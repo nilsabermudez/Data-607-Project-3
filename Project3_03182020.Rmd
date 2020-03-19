@@ -230,6 +230,202 @@ head(data, 40)
 ```
 
 
+```{r groupings-creation}
+require(rJava)
+#library(qdap)
+library(rJava)
+
+str(data)
+head(data$hard_skills_2,1)
+
+
+# Hardskills Section 
+HS1 <- tolower(c("database systems", "clinical decision engines", "MongoDB", "DynamoDB","Big Data", "Oracle", "Relational Database Management System (RDMS)", "No-SQL", "Cassandra", "Hadoop", "HPCC Systems", "Linux"))
+HS2 <- tolower(c("PowerBI", "Business Intelligence", "Cognos", "Business Objects", "Salesforce", "Microstrategy"))
+HS3 <- tolower(c("API"))
+HS4 <- tolower(c("supply chain", "business sense", "business knowledge"))
+HS5 <- tolower(c("predictive modeling", "R Programming", "MLE", "Decision Tree/Random Forest", "A/B tests set-up", "genism", "Statistical Programming Language", "Regression", "Decision Trees", "K-Means", "SPSS", "logistic regression"))
+HS6 <- tolower(c("machine learning","NLP/ML", "AI", "tensorflow", "pytorch", "keras","Vowpal Wabbit", "python-Tesseract"))
+HS7 <- tolower(c("SQL", "Python", "scipy", "Pig", "Hive"))
+HS8 <- tolower(c("analytic solutions", "dplyr", "Pandas", "OLS", "Reporting", "analysis", "Business Analytics", "Microsoft Office", "Shiny", "Jupyter"))
+HS9 <- tolower(c("algorithms", "numpy", "scikit-learn", "Java", "MATLAB", "Gurobi"))
+HS10 <- tolower(c("GGPlot", "Visualization", "Tableau", "looker", "Qlikview", "D3"))
+HS11 <- tolower(c("Heap.io", "Amplitude"))
+HS12 <- tolower(c("Google Analytics", "Javascript"))
+HS13 <- tolower(c("Jenkins CI/CD", "Git", "Github"))
+HS14 <- tolower(c("Azure", "Cloud data", "AWS", "Sagemaker"))
+HS15 <- tolower(c("agile"))
+
+data$hard_skill_groupings <- qdap::multigsub(HS1, "Data Modeling and DB Systems", data$hard_skills_2) 
+data$hard_skill_groupings <- qdap::multigsub(HS2, "Business Intelligence", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS3, "API", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS4, "Business Understanding", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS5, "Statistics and Advanced Data Mining", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS6, "AI/ML", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS7, "Scripting Languages", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS8, "Business Analytics & Reporting", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS9, "Algorithms", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS10, "Visualizations", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS11, "Product Analytics", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS12, "Web Analytics", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS13, "Opensource Management Systems & Automations", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS14, "Cloud Computing", data$hard_skill_groupings)
+data$hard_skill_groupings <- qdap::multigsub(HS15, "Agile", data$hard_skill_groupings)
+
+
+# checking hard_skills_2 vs hard_skill_groupings 
+data %>% select  (one_of(c("hard_skills_2", "hard_skill_groupings"))) %>% head(4)
+
+data$hard_skill_groupings_2 <- sapply (strsplit(data$hard_skill_groupings, ","), function(x) paste(unique(x), collapse = ",") )
+
+# checking hard_skills_2 vs hard_skill_groupings_2
+data %>% select  (one_of(c("hard_skills_2", "hard_skill_groupings_2"))) %>% head(4)
+
+
+head(data$soft_skills_2,1)
+
+
+# Soft Skills Section 
+
+SS1 <- tolower(c("collaboration"))
+SS2 <- tolower(c("critical thinking", "problem solving", "analytical thinker","resourceful", "work independently", "ability to think outside-the-box", "solve the business problem"))
+SS3 <- tolower(c("creativity"))
+SS4 <- tolower(c("highly motivated", "enthusiastic over-achievers", "passionate"))
+SS5 <- tolower(c("interpersonal skills", "humble"))
+SS6 <- tolower(c("driving on-time"))
+SS7 <- tolower(c("decision-making"))
+SS8 <- tolower(c("communicate", "communication skills"))
+
+data$soft_skill_groupings <- qdap::multigsub(SS1, "Teamwork", data$soft_skills_2) 
+data$soft_skill_groupings <- qdap::multigsub(SS2, "Problem-Solving", data$soft_skill_groupings) 
+data$soft_skill_groupings <- qdap::multigsub(SS3, "Creativity", data$soft_skill_groupings) 
+data$soft_skill_groupings <- qdap::multigsub(SS4, "Work Ethic", data$soft_skill_groupings) 
+data$soft_skill_groupings <- qdap::multigsub(SS5, "Interpersonal Skills", data$soft_skill_groupings) 
+data$soft_skill_groupings <- qdap::multigsub(SS6, "Time Management", data$soft_skill_groupings) 
+data$soft_skill_groupings <- qdap::multigsub(SS7, "Leadership", data$soft_skill_groupings) 
+data$soft_skill_groupings <- qdap::multigsub(SS8, "Communication Skills", data$soft_skill_groupings) 
+
+# checking soft_skills_2 vs soft_skill_groupings 
+data %>% select  (one_of(c("soft_skills_2", "soft_skill_groupings"))) %>% head(4)
+
+data$soft_skill_groupings_2 <- sapply (strsplit(data$soft_skill_groupings, ","), function(x) paste(unique(x), collapse = ",") )
+
+# checking soft_skills_2 vs soft_skill_groupings_2
+data %>% select  (one_of(c("soft_skills_2", "soft_skill_groupings_2"))) %>% head(4)
+
+
+```
+
+```{r Analysis-1a}
+library(ggplot2)
+library(scales) 
+# https://stackoverflow.com/questions/19835987/display-frequency-instead-of-count-with-geom-bar-in-ggplot
+
+#hist(table(data$soft_skill_groupings_2[[1]], freq = FALSE)
+
+#table(head(strsplit(data$soft_skill_groupings,","), 2) )    
+  
+#count(unique(strsplit(data$soft_skill_groupings, ",")), "group")
+
+#hist(table(data$soft_skill_groupings_2), freq = FALSE, ylim = c(0, 2))
+
+# , dnn=c("Teamwork", "Problem-Solving", "Creativity", "Work Ethic", "Interpersonal Skills", "Time Management", "Leadership", "Leadership", "Communication Skills")
+#barplot(prop.table(table(paste(data$soft_skill_groupings_2, collapse = ','))))
+
+#paste(stringi::stri_paste(data$soft_skill_groupings_2, collapse = ''), collapse = ',')
+
+#head(data$soft_skill_groupings_2, 10)
+
+# barplot approach 
+# barplot(prop.table(table(strsplit(paste(stringi::stri_remove_empty(data$soft_skill_groupings_2, na_empty = T), collapse = ','), ","))), beside = T, angle = 45)
+
+# trying the ggplot approach... it isn't working fully yet.
+#soft_skills_final<-strsplit(paste(stringi::stri_remove_empty(data$soft_skill_groupings_2, na_empty = T), collapse = ','), ",")
+#ggplot(data.frame(soft_skills_final), aes(x=soft_skills_final)) + geom_bar()
+
+
+count_table <- table(strsplit(paste(stringi::stri_remove_empty(data$soft_skill_groupings_2, na_empty = T), collapse = ','), ","))
+count_df <- as.data.frame(count_table)
+
+soft_skills_count_df_final <- count_df %>% arrange(desc(Freq)) %>% mutate(Frequency_Percent = round(Freq/sum(Freq), 3)*100)
+soft_skills_count_df_final
+
+
+#soft_skills_df <- as.data.frame(prop.table(table(strsplit(paste(stringi::stri_remove_empty(data$soft_skill_groupings_2, na_empty = T), collapse = ','), ","))))
+#names(soft_skills_df) <- c("Soft Skills Groupings", "Frequencies")
+#soft_skills_df
+
+
+# ggplot(data = soft_skills_df) +
+#  aes(x = reorder("Soft Skills Groupings", "Frequencies") , y = Frequencies) + 
+#  scale_y_continuous(labels = percent) +
+#  geom_text(aes(label = Frequencies), hjust = -.15) + 
+#  labs(title = "Top Soft Skills") + 
+#  xlab("Var1") +
+#  ylab("Freq") + 
+#  theme(
+#    panel.background = element_rect(fill = "white", color = NA),
+#     axis.ticks.y = element_blank(),
+#    axis.text.x = element_blank(),
+#    axis.ticks.x = element_blank(),
+#    plot.title = element_text(hjust = 0.45)
+#  ) +
+#  coord_flip() 
+
+```
+
+```{r fig.width=13, fig.height= 4}
+  ggplot(data = soft_skills_count_df_final) +
+  aes(x = reorder(Var1, Frequency_Percent), y = Frequency_Percent) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(Frequency_Percent, "%")), hjust = -.15) +
+  labs(title = "Top Data Science Soft Skills") +
+  xlab("Skill") +
+  ylab("Percent") +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+     axis.ticks.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+     plot.title = element_text(hjust = 0.35)
+  ) +
+  coord_flip()
+```
+
+
+
+```{r Analysis-1a-Hard-Skills-Section}
+
+count_table1 <- table(strsplit(paste(stringi::stri_remove_empty(data$hard_skill_groupings_2, na_empty = T), collapse = ','), ","))
+count_df1 <- as.data.frame(count_table1)
+
+hard_skills_count_df_final <- count_df1 %>% arrange(desc(Freq)) %>% mutate(Frequency_Percent = round(Freq/sum(Freq), 3)*100)
+hard_skills_count_df_final
+
+
+```
+
+```{r fig.width=13, fig.height= 4}
+  ggplot(data = hard_skills_count_df_final) +
+  aes(x = reorder(Var1, Frequency_Percent), y = Frequency_Percent) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(Frequency_Percent, "%")), hjust = -.15) +
+  labs(title = "Top Data Science Hard Skills") +
+  xlab("Skill") +
+  ylab("Percent") +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+     axis.ticks.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+     plot.title = element_text(hjust = 0.35)
+  ) +
+  coord_flip()
+```
+
+
+
+
 ```{r}
 #Create .csv file
 write.csv(data, file = "data.csv", row.names = FALSE)
