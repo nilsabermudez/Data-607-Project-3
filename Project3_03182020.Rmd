@@ -433,9 +433,3 @@ data <- read.csv("data.csv")
 datatable(data)
 ```
 
-```{r}
-
-
-```
-
-
